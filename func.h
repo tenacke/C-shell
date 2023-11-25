@@ -2,8 +2,6 @@
 #define INIT_FILE ".myshrc"
 #define HISTORY_FILE ".mysh_history"
 #define USER_ENV "USER"
-#define PATH_ENV "PATH"
-#define PATH_DELIM ":"
 #define PROMPT_FORMAT "%s@%s %s --- "
 #define MAXIMUM_LINE 1024
 #define MAXIMUM_ALIAS 256
@@ -13,11 +11,25 @@
 #define WHITESPACE " \t\n"
 #ifdef _WIN32
 #define PATH_SEPARATOR "\\"
+#define PATH_ENV "PATH"
+#define HOME_ENV "HOMEPATH"
+#define PATH_DELIM ";"
 #else
 #define PATH_SEPARATOR "/"
+#define PATH_ENV "PATH"
+#define HOME_ENV "HOME"
+#define PATH_DELIM ":"
 #endif
 
-
+typedef struct {
+    char *alias;
+    char *cmd;
+} alias_t;
+typedef struct {
+    char *array[MAXIMUM_HISTORY];
+    int pointer;
+    int size;
+} Stack;
 typedef struct {
     char *command;
     char **args;
@@ -32,16 +44,23 @@ typedef enum {
 } ERR_CODE;
 typedef int (*ptr)(command_t);
 
-void myprintf(char *str, command_t cmd, ...);
-void save_history(command_t cmd);
+void add_alias(char *alias, char *cmd);
+void append_history(char *cmd);
+char** get_history(int num); 
+void save_history();
+
 int run_built_in(command_t command);
 int run_external(command_t command);
-void print_prompt();
 
+void myprintf(char *str, command_t cmd, ...);
+void print_prompt();
 void print_err(ERR_CODE err, command_t cmd, char *arg);
 void print_err_msg(char *msg, command_t cmd);
 
-char** split(char* str, char* delim);
+char** strsplit(char* str, char* delim);
+char* strtrim(char* dest, char* src, char* delim);
+
+void parse_args(int argc, char* argv[]);
 command_t parse_command(char *line);
 void free_command(command_t cmd);
 

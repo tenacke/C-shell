@@ -7,10 +7,10 @@
 
 void start_interactive();
 void start_batch(int argc, char *argv[]);
+void execute_line(char *line);
 void init_shell();
 
-FILE *init_file;
-FILE *history_file;
+Stack *history_stack = NULL;
 
 char** PATH = NULL;
 
@@ -22,61 +22,60 @@ int main(int argc, char *argv[]) {
 
 void start_interactive(){
     init_shell();
-    char line[LINE_MAX+1];
+    char line[MAXIMUM_LINE+1];
     print_prompt();
-    while (fgets(line, LINE_MAX, stdin)){
-        command_t command = parse_command(line);
-        if (run_built_in(command) == 0) {  }
-        else if (run_external(command) == 0) {  } 
-        else { print_err(NO_CMD, command, command.command); }
-        save_history(command);
-        free_command(command);
+    while (fgets(line, MAXIMUM_LINE, stdin)){
+        strtrim(line, line, WHITESPACE);
+        if (strchr(WHITESPACE, *line) || *line == '\0') { print_prompt(); continue; }
+        execute_line(line);
         print_prompt();
     }
     exit_shell();
 }
 
-void start_batch(int argc, char *argv[]) {  }
+void start_batch(int argc, char *argv[]) { 
+    parse_args(argc, argv);
+}
+
+void execute_line(char *line){
+    char *line_copy = strdup(line);
+    append_history(line_copy);
+    command_t command = parse_command(line);
+    if (run_built_in(command) == 0) {  }
+    else if (run_external(command) == 0) {  } 
+    else { print_err(NO_CMD, command, command.command); }
+    free_command(command);
+}
 
 void init_shell(){
-    init_file = fopen(INIT_FILE, "rw");
-    history_file = fopen(HISTORY_FILE, "a");
-    PATH = split(getenv(PATH_ENV), PATH_DELIM);
+    FILE* init_file = fopen(INIT_FILE, "r");
+    FILE* history_file = fopen(HISTORY_FILE, "r");
+    PATH = strsplit(getenv(PATH_ENV), PATH_DELIM);
+    history_stack = (Stack*) malloc(sizeof(Stack));
+
     // TODO read aliases from init file
-}
-
-void print_prompt(){
-    char *user = getenv(USER_ENV);
-    char host[_POSIX_HOST_NAME_MAX + 1];
-    gethostname(host, _POSIX_HOST_NAME_MAX);
-    char *cwd = getcwd(NULL, 0);
-    printf(PROMPT_FORMAT, user, host, cwd);
-    free(cwd);
-}
-
-void print_err(ERR_CODE err, command_t cmd, char *arg){
-    if (arg == NULL) { arg = ""; }
-    switch (err){
-        case NO_CMD:
-            myprintf("Command not found: %s\n", cmd, arg);
-            break;
-        case NO_ARG:
-            myprintf("No arguments: %s\n", cmd, arg);
-            break;
-        case INV_ARG:
-            myprintf("Invalid argument: %s\n", cmd, arg);
-            break;
-        case RUN_ERR:
-            myprintf("Error running command: \n", cmd, arg);
-            break;
-        default:
-            myprintf("Unknown error\n", cmd);
-            break;
+    char line[MAXIMUM_LINE+1];
+    while (fgets(line, MAXIMUM_LINE, init_file)){
+        strtrim(line, line, WHITESPACE);
+        if (strchr(WHITESPACE, *line) || *line == '\0') { continue; }
+        execute_line(line);
     }
+
+    // TODO read history from history file
+    while (fgets(line, MAXIMUM_HISTORY_LINE, history_file)){
+        strtrim(line, line, WHITESPACE);
+        if (strchr(WHITESPACE, *line) || *line == '\0') { continue; }
+        char* line_copy = strdup(line);
+        append_history(line_copy);
+    }
+    fclose(init_file);
+    fclose(history_file);
 }
 
-void print_err_msg(char *msg, command_t cmd){
-    myprintf("%s\n", cmd, msg);
+int exit_shell(){
+    save_history();
+    free(PATH);
+    exit(0);
 }
 
 int run_built_in(command_t command){
