@@ -12,10 +12,10 @@ typedef struct {
 } alias_t;
 
 typedef struct {
-    char *command;
-    char **args;
+    token_t command;
+    token_t* args;
     int num_args;
-    char *shell_op;
+    token_t* op_args;
 } command_t;
 
 typedef enum {
@@ -34,13 +34,20 @@ typedef enum {
 typedef enum {
     NO_TOKEN,
     WORD,
-    BACKGRND,
+    OP,
+    OP_WORD
+} TOKEN_TYPE;
+
+typedef enum {
+    NO_OP,
     PIPE,
     REDIR_IN,
     REDIR_OUT,
-    REDIR_OUT_REVERSE,
-    REDIR_APPEND
-} TOKEN_TYPE;
+    REDIR_APPEND,
+    REDIR_ERR,
+    REDIR_ERR_APPEND,
+    BACKGROUND
+} OP_TYPE;
 
 typedef int (*ptr)(command_t);
 typedef struct {

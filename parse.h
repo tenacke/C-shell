@@ -1,6 +1,7 @@
 #ifndef TYPEDEFS_H
 #include "types.h"
 #endif
+#define OPERATORS ">&|"
 
 void parse_args(int argc, char* argv[]);
 command_t parse_command(char *line);
