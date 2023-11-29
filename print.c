@@ -2,10 +2,16 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
+
 #include "main.h"
 #include "print.h"
+#ifdef __APPLE__
+#define REMOVE_LOCAL 1
+#else
+#define REMOVE_LOCAL 0
+#endif
 
-void myprintf(char *str, command_t cmd, ...){
+void myprintf(char *str, command_t* cmd, ...){
     // TODO print to file if specified in command
     va_list args;
     va_start(args, cmd);
@@ -17,12 +23,22 @@ void print_prompt(){
     char *user = getenv(USER_ENV);
     char host[MAXIMUM_HOSTNAME + 1];
     gethostname(host, MAXIMUM_HOSTNAME);
+    if (REMOVE_LOCAL) {
+        char* local = host;
+        while (*local != '\0') {
+            if (*local == '.') {
+                *local = '\0';
+                break;
+            }
+            local++;
+        }
+    }
     char *cwd = getcwd(NULL, 0);
     printf(PROMPT_FORMAT, user, host, cwd);
     free(cwd);
 }
 
-void print_err(ERR_CODE err, command_t cmd, char *arg){
+void print_err(ERR_CODE err, command_t* cmd, char *arg){
     if (arg == NULL) { arg = ""; }
     switch (err){
         case NO_CMD:
@@ -43,6 +59,6 @@ void print_err(ERR_CODE err, command_t cmd, char *arg){
     }
 }
 
-void print_err_msg(char *msg, command_t cmd){
+void print_err_msg(char *msg, command_t* cmd){
     myprintf("%s\n", cmd, msg);
 }

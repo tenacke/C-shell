@@ -1,96 +1,125 @@
 #include <stdlib.h>
 #include <string.h>
-#include "main.h"
+
 #include "parse.h"
-#include "print.h"
+#include "types.h"
 #include "strlib.h"
+#include "alias.h"
 
-void parse_args(int argc, char *argv[]){
-    // TODO parse args
-}
-
-command_t parse_command(char *line){
-    // TODO parse aliases
-    token_t *tokens = tokenize(line);
-    command_t command;
-    command.args = (token_t*) malloc(sizeof(token_t) * (MAXIMUM_ARG + 1));
-    command.op_args = (token_t*) malloc(sizeof(token_t) * (MAXIMUM_ARG + 1));
-    int i, j;
-    if (tokens[0].type == WORD){
-        command.command = tokens[0];
-        for (i = 0; tokens[i].type == WORD; i++){
-            command.num_args++;
-            command.args[i] = tokens[i];
-        }
-        command.args[i].type = NO_TOKEN;
-        for (j = 0; tokens[i].type != NO_TOKEN; i++, j++){
-            command.op_args[j] = tokens[i];
-        }
-        command.op_args[j].type = NO_TOKEN;
-        command.args = (token_t*) realloc(command.args, sizeof(token_t) * (command.num_args + 1));
-        command.op_args = (token_t*) realloc(command.op_args, sizeof(token_t) * (j + 1));
+char* replace_alias(char** dest, char* line) {
+    // get string before first whitespace replace with alias and append the rest
+    char* cmd = strdup(line);
+    char* alias = strtok(cmd, WHITESPACE);
+    if (alias == NULL) {
+        free(cmd);
+        *dest = line;
+        return NULL;
+    }
+    char* rest = strtok(NULL, "");
+    char* alias_cmd = get_alias(alias);
+    if (alias_cmd == NULL) {
+        free(cmd);
+        *dest = line;
+        return line;
     } else {
-        print_err(INV_ARG, command, tokens[0].word);
+        int length = strlen(alias_cmd) + 2;
+        if (rest != NULL) length += strlen(rest);
+        char* new_cmd = malloc(sizeof(char) * length);
+        strcpy(new_cmd, alias_cmd); strcat(new_cmd, " "); 
+        if (rest != NULL) strcat(new_cmd, rest);
+        else strcat(new_cmd, "\n");
+        free(cmd); free(line); 
+        *dest = new_cmd;
+        return new_cmd;
     }
-
-
-    // char **tokens = strsplit(line, WHITESPACE);
-    // command.command = tokens[0].word;
-    // command.args = tokens;
-    // command.num_args = 0;
-    // while (command.args[command.num_args] != NULL){
-    //     command.num_args++;
-    // }
-    // command.shell_op = NULL;
-    return command;
 }
 
-void free_command(command_t command){
-    free(command.args);
-}
-
-token_t* tokenize(char *line){
-    token_t *tokens = (token_t*) malloc(sizeof(token_t) * (MAXIMUM_ARG + 1));
-    char *current;
-    TOKEN_TYPE current_token = NO_TOKEN;
-    int escaped = 0;
-    int op_word = 0;
+token_list_t* tokenize(char *line) {
+    char *current_char = line;
+    int quote = 0;
     int i = 0;
-    while (*line != '\0'){
-        if (strchr(WHITESPACE, *line) != NULL){
-            if (!escaped && current_token != NO_TOKEN){
-                *line = '\0';
-                tokens[i].word = current;
-                tokens[i].type = current_token;
-                current_token = NO_TOKEN;
+    TOKEN_TYPE type = NO_TOKEN;
+    token_list_t* tokens = (token_list_t*) malloc(sizeof(token_list_t));
+    tokens->tokens = (token_t*) malloc(sizeof(token_t) * MAXIMUM_ARG);
+    tokens->size = 0;
+    while (*(current_char+i)) {
+        if (*(current_char+i) == '"') {
+            if (type == NO_TOKEN) {
+                type = WORD;
+            }
+            quote = !quote;
+            i++;
+        } else if (strchr(WHITESPACE, *(current_char+i))) {
+            if (type == NO_TOKEN || quote) {
                 i++;
+                continue;
             }
-        }else if (strchr(STR_ESCAPE, *line) != NULL){
-            if (escaped){
-                escaped = 0;
-            } else {
-                escaped = 1;
+            tokens->tokens[tokens->size].word = malloc(sizeof(char) * (i+1));
+            tokens->tokens[tokens->size].type = type;
+            strncpy(tokens->tokens[tokens->size].word, current_char, i);
+            strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, WHITESPACE);
+            strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, "\"");
+            if (tokens->size >= MAXIMUM_ARG) {
+                return NULL;
             }
-        } else if (strchr(OPERATORS, *line) != NULL){
-            if (current_token != NO_TOKEN){
-                current = line;
-                current_token = OP;
+            current_char += i;
+            tokens->size++;
+            type = NO_TOKEN;
+            i = 0;
+        } else { 
+            if (type == NO_TOKEN) {
+                if (strchr(OPERATOR, *(current_char+i))) {
+                    type = OP;
+                } else {
+                    type = WORD;
+                }
             }
-        } else {
-            if (current_token == NO_TOKEN) {
-                current = line;
-                if (op_word) { current_token = OP_WORD; }
-                else { current_token = WORD; }
-            }
+            i++;
         }
-        line++;
     }
-    if (current_token != NO_TOKEN){
-        tokens[i].word = current;
-        tokens[i].type = current_token;
-        i++;
-    }
-    tokens = (token_t*) realloc(tokens, sizeof(token_t) * (i + 1));
-    tokens[i].type = NO_TOKEN;
+    tokens->tokens = (token_t*) realloc(tokens->tokens, sizeof(token_t) * tokens->size);
     return tokens;
+}
+
+command_t* parse_command(token_list_t* tokens){
+    command_t* cmd = (command_t*) malloc(sizeof(command_t));
+    cmd->cmd = tokens->tokens[0].word;
+    cmd->tokens = tokens;
+    cmd->argc = 0;
+    cmd->type = NO_OP;
+    for (int i = 0; i < tokens->size; i++) {
+        if (tokens->tokens[i].type == OP) {
+            char bit = * strchr(OPERATOR, tokens->tokens[i].word[0]);
+            switch (bit) {
+            case PIPE_CHAR:
+                cmd->type = PIPE;
+                break;
+            case REDIR_IN_CHAR:
+                cmd->type = REDIR_IN;
+                break;
+            case REDIR_OUT_CHAR:
+                if (strcmp(tokens->tokens[i].word, REDIR_APPEND_STR) == 0)
+                    cmd->type = REDIR_APPEND;
+                else if (strcmp(tokens->tokens[i].word, REDIR_REVERSE_STR) == 0)
+                    cmd->type = REDIR_REVERSE;
+                else
+                    cmd->type = REDIR_OUT;
+                break;
+            case BACKGROUND_CHAR:
+                cmd->type = BACKGROUND;
+            }
+            break;
+        }
+        cmd->argc++;
+    }
+    return cmd;
+}
+
+void free_command(command_t* cmd) {
+    for (int i = 0; i < cmd->tokens->size; i++) {
+        free(cmd->tokens->tokens[i].word);
+    }
+    free(cmd->tokens->tokens);
+    free(cmd->tokens);
+    free(cmd);
 }

@@ -1,3 +1,6 @@
+#ifndef HISTORY_H
+#define HISTORY_H
+
 #ifndef MAXIMUM_HISTORY
 #define MAXIMUM_HISTORY 256
 #endif
@@ -7,12 +10,11 @@
 #else
 #define MAXIMUM_HISTORY_LINE 1024
 #endif
-#ifndef TYPEDEFS_H
 #include "types.h"
-#endif
 
-extern Stack* history_stack;
-
+//extern Stack* history_stack;
+Stack* history_stack;
 void append_history(char *cmd);
 char** get_history(int num); 
 void save_history();
+#endif

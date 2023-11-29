@@ -1,4 +1,8 @@
+#ifndef MAIN_H
+
+#ifndef MAXIMUM_ARG
 #define MAXIMUM_ARG 128
+#endif
 #define MAXIMUM_HOSTNAME 255
 #define USER_ENV "USER"
 #ifdef _WIN32
@@ -13,6 +17,9 @@
 #define PATH_SEPARATOR "/"
 #endif
 
-void start_interactive();
-void start_batch(int argc, char *argv[]);
-void execute_line(char *line);
+struct PATH {
+    char** paths;
+    size_t size;
+};
+
+#endif

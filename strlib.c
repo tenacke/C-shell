@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "main.h"
 #include "strlib.h"
-#ifndef TYPEDEFS_H
 #include "types.h"
-#endif
 
-char** strsplit(char *line, char *delim){
-    char **tokens = (char**) malloc(sizeof(char*) * (MAXIMUM_ARG + 1));
+char** strsplit(char* line, const char* delim, size_t* size){
+    char **tokens = (char**) malloc(sizeof(char*) * (strlen(line) + 1));
     char *token = strtok(line, delim);
     int i = 0;
     while (token != NULL){
@@ -18,12 +17,13 @@ char** strsplit(char *line, char *delim){
     }
     tokens[i] = NULL;
     tokens = (char**) realloc(tokens, sizeof(char*) * (i + 1));
+    *size = i;
     return tokens;
 }
 
-char* strtrim(char *dest, char *src, char *delim){
-    char *start = src;
-    char *end = src + strlen(src) - 1;
+char* strtrim(char* dest, const char* src, const char* delim){
+    const char *start = src;
+    const char *end = src + strlen(src) - 1;
     while (end > start){
         if (strchr(delim, *start) != NULL) { start++; }
         if (strchr(delim, *end) != NULL) { end--; }
@@ -34,4 +34,17 @@ char* strtrim(char *dest, char *src, char *delim){
         }
     }
     return dest;
+}
+
+char* pathjoin(char** dest, const char* s1, const char* s2) {
+    char* result = malloc(strlen(s1) + strlen(s2) + 2);
+
+    if (result) {
+        strcpy(result, s1);
+        strcat(result, PATH_SEPARATOR);
+        strcat(result, s2);
+    }
+
+    *dest = result;
+    return result;
 }
