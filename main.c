@@ -8,6 +8,7 @@
 #include "print.h"
 #include "strlib.h"
 #include "types.h"
+#include "process.h" 
 
 struct PATH PATH;
 
@@ -41,7 +42,7 @@ void interactive() {
         }
         */
         SIGNAL sig = execute_command(cmd);
-        printf("signal: %d\n", sig);
+        // printf("signal: %d\n", sig);
         free_command(cmd);
         free(line);
         line = NULL;

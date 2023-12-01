@@ -1,5 +1,5 @@
-myshell: main.o alias.o builtins.o history.o parse.o print.o shell.o strlib.o types.h
-	gcc -o myshell main.o alias.o builtins.o history.o parse.o print.o shell.o strlib.o
+myshell: main.o alias.o builtins.o history.o parse.o print.o shell.o strlib.o process.o types.h
+	gcc -o myshell main.o alias.o builtins.o history.o parse.o print.o shell.o strlib.o process.o
 
 main.o: main.c main.h
 	gcc -c main.c -o main.o
@@ -21,6 +21,9 @@ print.o: print.c print.h
 
 shell.o: shell.c shell.h
 	gcc -c shell.c -o shell.o
+
+process.o: process.c process.h
+	gcc -c process.c -o process.o
 
 strlib.o: strlib.c strlib.h
 	gcc -c strlib.c -o strlib.o

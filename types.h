@@ -18,6 +18,7 @@ typedef enum {
 
 typedef enum {
     NOT_FOUND,
+    RUNNING,
     SUCCESS,
     FAILURE
 } SIGNAL;

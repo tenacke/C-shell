@@ -34,7 +34,7 @@ void print_prompt(){
         }
     }
     char *cwd = getcwd(NULL, 0);
-    printf(PROMPT_FORMAT, user, host, cwd);
+    myprintf(PROMPT_FORMAT, NULL, user, host, cwd);
     free(cwd);
 }
 
@@ -61,4 +61,24 @@ void print_err(ERR_CODE err, command_t* cmd, char *arg){
 
 void print_err_msg(char *msg, command_t* cmd){
     myprintf("%s\n", cmd, msg);
+}
+
+void print_status(SIGNAL signal, pid_t pid){
+    switch (signal){
+        case NOT_FOUND:
+            myprintf("Command not found\n", NULL);
+            break;
+        case RUNNING:
+            myprintf("Running process [%d]\n", NULL, pid);
+            break;
+        case SUCCESS:
+            myprintf("Process exited successfully [%d]\n", NULL, pid);
+            break;
+        case FAILURE:
+            myprintf("Process exited with failure [%d]\n", NULL, pid);
+            break;
+        default:
+            myprintf("Unknown signal\n", NULL);
+            break;
+    }
 }

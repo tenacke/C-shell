@@ -5,6 +5,7 @@
 
 #include "builtins.h"
 #include "main.h"
+#include "shell.h"
 #include "print.h"
 #include "types.h"
 
@@ -15,7 +16,8 @@ builtin_t builtins[] = {
     {"pwd", &pwd},
     {"history", &history},
     {"alias", &alias},
-    {"bello", &bello}
+    {"bello", &bello},
+    {"exit", &exit_shell}
 };
 
 builtin_func* get_builtin_func(char* name){
