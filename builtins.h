@@ -18,4 +18,5 @@ SIGNAL pwd(command_t* cmd);
 SIGNAL history(command_t* cmd);
 SIGNAL alias(command_t* cmd);
 SIGNAL bello(command_t* cmd);
+SIGNAL exit_(command_t* cmd);
 #endif

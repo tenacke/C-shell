@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
@@ -6,6 +7,7 @@
 
 #include "main.h"
 #include "shell.h"
+#include "alias.h"
 #include "process.h"
 #include "builtins.h"
 #include "types.h"
@@ -16,10 +18,14 @@ extern struct PATH PATH;
 
 void init_shell() {
     char* path = getenv(PATH_ENV);
+    setenv(PATH_ENV, path, 1);
     char** paths = strsplit(path, PATH_DELIM, &PATH.size);
     PATH.paths = paths;
+    load_aliases();
 
     signal(SIGCHLD, check_background_processes);
+    signal(SIGTERM, exit_shell);
+    signal(SIGQUIT, exit_shell);
     signal(SIGINT, interrupt_handler);
     // struct sigaction sa;
     // sa.sa_handler = check_background_processes;
@@ -29,6 +35,8 @@ void init_shell() {
 }
 
 int exit_shell() {
+    printf("exit\n");
+    save_aliases();
     free(PATH.paths);
     kill_all_processes();
     exit(0);

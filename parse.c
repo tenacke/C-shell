@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "parse.h"
 #include "types.h"
@@ -12,7 +13,8 @@ char* replace_alias(char** dest, char* line) {
     char* alias = strtok(cmd, WHITESPACE);
     if (alias == NULL) {
         free(cmd);
-        *dest = line;
+        free(*dest);
+        *dest = NULL;
         return NULL;
     }
     char* rest = strtok(NULL, "");
@@ -43,7 +45,7 @@ token_list_t* tokenize(char *line) {
     tokens->tokens = (token_t*) malloc(sizeof(token_t) * MAXIMUM_ARG);
     tokens->size = 0;
     while (*(current_char+i)) {
-        if (*(current_char+i) == '"') {
+        if (*(current_char+i) == '"' || *(current_char+i) == '\'') {
             if (type == NO_TOKEN) {
                 type = WORD;
             }
@@ -59,6 +61,7 @@ token_list_t* tokenize(char *line) {
             strncpy(tokens->tokens[tokens->size].word, current_char, i);
             strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, WHITESPACE);
             strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, "\"");
+            strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, "\'");
             if (tokens->size >= MAXIMUM_ARG) {
                 return NULL;
             }
@@ -77,6 +80,19 @@ token_list_t* tokenize(char *line) {
             i++;
         }
     }
+    if (type != NO_TOKEN) {
+        if (quote) {
+            // TODO coz burayi
+            return NULL;
+        }else {
+            tokens->tokens[tokens->size].word = malloc(sizeof(char) * (i+1));
+            tokens->tokens[tokens->size].type = type;
+            strncpy(tokens->tokens[tokens->size].word, current_char, i);
+            strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, WHITESPACE);
+            strtrim(tokens->tokens[tokens->size].word, tokens->tokens[tokens->size].word, "\"");
+            tokens->size++;
+        }
+    }
     tokens->tokens = (token_t*) realloc(tokens->tokens, sizeof(token_t) * tokens->size);
     return tokens;
 }
@@ -87,6 +103,7 @@ command_t* parse_command(token_list_t* tokens){
     cmd->tokens = tokens;
     cmd->argc = 0;
     cmd->type = NO_OP;
+    cmd->background = 0;
     for (int i = 0; i < tokens->size; i++) {
         if (tokens->tokens[i].type == OP) {
             char bit = * strchr(OPERATOR, tokens->tokens[i].word[0]);
@@ -106,7 +123,7 @@ command_t* parse_command(token_list_t* tokens){
                     cmd->type = REDIR_OUT;
                 break;
             case BACKGROUND_CHAR:
-                cmd->type = BACKGROUND;
+                cmd->background = 1;
             }
             break;
         }

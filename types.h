@@ -36,14 +36,9 @@ typedef enum {
     REDIR_IN,
     REDIR_OUT,
     REDIR_APPEND,
-    REDIR_REVERSE,
-    BACKGROUND
+    REDIR_REVERSE
 } OP_TYPE;
 
-typedef struct {
-    char* alias;
-    char* cmd;
-} alias_t;
 typedef struct {
     char* word;
     TOKEN_TYPE type;
@@ -57,6 +52,7 @@ typedef struct {
     token_list_t* tokens;
     int argc;
     OP_TYPE type;
+    int background;
 } command_t;
 
 typedef struct {

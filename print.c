@@ -13,9 +13,10 @@
 
 void myprintf(char *str, command_t* cmd, ...){
     // TODO print to file if specified in command
+    FILE* file = stdout;
     va_list args;
     va_start(args, cmd);
-    vfprintf(stdout, str, args);
+    vfprintf(file, str, args);
     va_end(args);
 }
 

@@ -15,6 +15,7 @@ int create_process(command_t* command, char* path);
 void interrupt_handler(int signal);
 void check_background_processes();
 void kill_all_processes();
+void get_process_name(const pid_t pid, char* name);
 
 
 #endif

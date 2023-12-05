@@ -11,7 +11,7 @@
 #define PIPE_CHAR '|'
 #define BACKGROUND_CHAR '&'
 #define OPERATOR "|><&"
-#define WHITESPACE " \t\r\n\a"
+#define WHITESPACE (char[]) {' ', '\t', '\r', '\n', '\a', 4}
 
 #include "types.h"
 
