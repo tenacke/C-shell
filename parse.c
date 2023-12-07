@@ -104,15 +104,18 @@ command_t* parse_command(token_list_t* tokens){
     cmd->argc = 0;
     cmd->type = NO_OP;
     cmd->background = 0;
+    int found = 0;
     for (int i = 0; i < tokens->size; i++) {
         if (tokens->tokens[i].type == OP) {
             char bit = * strchr(OPERATOR, tokens->tokens[i].word[0]);
             switch (bit) {
             case PIPE_CHAR:
                 cmd->type = PIPE;
+                found = 1;
                 break;
             case REDIR_IN_CHAR:
                 cmd->type = REDIR_IN;
+                found = 1;
                 break;
             case REDIR_OUT_CHAR:
                 if (strcmp(tokens->tokens[i].word, REDIR_APPEND_STR) == 0)
@@ -121,14 +124,18 @@ command_t* parse_command(token_list_t* tokens){
                     cmd->type = REDIR_REVERSE;
                 else
                     cmd->type = REDIR_OUT;
+                found = 1;
                 break;
             case BACKGROUND_CHAR:
                 cmd->background = 1;
+                found = 1;
             }
-            break;
-        }
-        cmd->argc++;
+        } else if (!found)
+            cmd->argc++;
     }
+    // for (int i = 0; i < cmd->argc; i++) {
+    //     printf("token %d: %s\n", i, cmd->tokens->tokens[i].word);
+    // }
     return cmd;
 }
 

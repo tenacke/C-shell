@@ -91,7 +91,8 @@ void interactive() {
         if (last != NULL) free(last);
         last = strdup(line);
         // printf("signal: %d\n", sig);
-        free_command(cmd);
+        if (!cmd->background)
+            free_command(cmd);
         free(line);
         line = NULL;
     }

@@ -13,6 +13,8 @@
 
 void myprintf(char *str, command_t* cmd, ...){
     // TODO print to file if specified in command
+    char buffer[1024];
+    // vsprintf(buffer, str, cmd);
     FILE* file = stdout;
     va_list args;
     va_start(args, cmd);
@@ -35,7 +37,7 @@ void print_prompt(){
         }
     }
     char *cwd = getcwd(NULL, 0);
-    myprintf(PROMPT_FORMAT, NULL, user, host, cwd);
+    printf(PROMPT_FORMAT, user, host, cwd);
     free(cwd);
 }
 

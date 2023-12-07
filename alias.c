@@ -38,9 +38,8 @@ char* get_alias(char *alias){
 
 void load_aliases(){
     FILE* file = fopen(alias_file, "r");
-    if(file == NULL){
+    if(file == NULL)
         return;
-    }
     char* line = NULL;
     size_t len = 0;
     while(getline(&line, &len, file) != -1){
@@ -53,6 +52,8 @@ void load_aliases(){
 
 void save_aliases(){
     FILE* file = fopen(alias_file, "w");
+    if(file == NULL)
+        return;
     struct alias_t* tmp = aliases;
     while(tmp != NULL){
         fprintf(file, "%s=%s\n", tmp->alias, tmp->command);

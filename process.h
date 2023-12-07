@@ -7,6 +7,8 @@
 struct process_t {
     pid_t pid;
     int status;
+    int fd;
+    command_t* command;
     struct process_t* next;
     struct process_t* prev;    
 };
@@ -15,7 +17,6 @@ int create_process(command_t* command, char* path);
 void interrupt_handler(int signal);
 void check_background_processes();
 void kill_all_processes();
-void get_process_name(const pid_t pid, char* name);
 
 
 #endif

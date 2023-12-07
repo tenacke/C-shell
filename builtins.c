@@ -91,10 +91,14 @@ SIGNAL bello(command_t* command){
     // tty
     char* tty = ttyname(STDIN_FILENO);
     myprintf("%s\n", command, tty);
-    // shell
-    pid_t shell = getppid();
-    // char *shell = getenv("$");
-    myprintf("%d\n", command, shell);
+    
+    // shell ps -o args= -p
+    char cmd[100];
+    sprintf(cmd, "ps -o args= -p %d", getppid());
+    FILE* out = popen(cmd, "r");
+    char buf[100];
+    fgets(buf, 100, out);
+    myprintf("%s", command, buf);
 
     // home
     myprintf("%s\n", command, getenv(HOME_ENV));
@@ -106,6 +110,11 @@ SIGNAL bello(command_t* command){
     
     // number of processes
     // TODO ps aux | wc -l
+    sprintf(cmd, "ps aux | wc -l");
+    out = popen(cmd, "r");
+    fgets(buf, 100, out);
+    myprintf("%s", command, buf);
+
 
     return SUCCESS;
 }
