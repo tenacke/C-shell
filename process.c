@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "process.h"
 #include "parse.h"
@@ -82,7 +83,12 @@ int create_process(command_t* command, char* path){
             new_process->command = command;
             new_process->fd = p[0];
             add_process(new_process);
-            // print_status(RUNNING, pid);
+            print_status(RUNNING, pid);
+            // nanosleep 0.1 seconds
+            struct timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = 50000000L;
+            nanosleep(&ts, NULL);
             // sleep(1);
             return 0;
         } else {
@@ -103,9 +109,9 @@ void check_background_processes() {
     struct process_t* current = head;
     while (current != NULL) {
         if (waitpid(current->pid, &current->status, WNOHANG) != 0) {
-            if (WIFEXITED(current->status)) {
-                // if (W_EXITCODE(current->status, 0)) print_status(FAILURE, current->pid);
-                // else print_status(SUCCESS, current->pid);
+            if (WIFEXITED(current->status) || WIFSIGNALED(current->status)) {
+                if (W_EXITCODE(current->status, 0)) print_status(FAILURE, current->pid);
+                else print_status(SUCCESS, current->pid);
                 handle_redirection(current->fd, current->command);
                 struct process_t* next = current->next;
                 remove_process(current);

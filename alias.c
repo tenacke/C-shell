@@ -17,6 +17,11 @@ void add_alias(char *alias, char *command){
     }
     struct alias_t* tmp = aliases;
     while(tmp->next != NULL){
+        if (strcmp(tmp->alias, alias) == 0){
+            free(tmp->command);
+            tmp->command = strdup(command);
+            return;
+        }
         tmp = tmp->next;
     }
     tmp->next = malloc(sizeof(struct alias_t));
