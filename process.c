@@ -183,6 +183,7 @@ void handle_redirection(int fd, command_t* command){
             write(fd_reverse, my, 1);
         }
         close(fd_reverse);
+        free(buf);
     }
     close(fd);
 }

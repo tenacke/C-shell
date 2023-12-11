@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>  
 #include <pwd.h>
 #include <time.h>
 #include <sys/types.h>
+#include <poll.h>
 
 #include "builtins.h"
 #include "main.h"
@@ -17,7 +21,6 @@
 extern char* last;
 
 builtin_t builtins[] = {
-    {"echo", &echo},
     {"cd", &cd},
     {"pwd", &pwd},
     {"history", &history},
@@ -33,13 +36,6 @@ builtin_func* get_builtin_func(char* name){
         }
     }
     return NULL;
-}
-
-SIGNAL echo(command_t* command){
-    for (int i = 1; i < command->argc; i++)
-    myprintf("%s ", command, command->tokens->tokens[i].word);
-    myprintf("\n", command);
-    return SUCCESS;
 }
 
 SIGNAL pwd(command_t* command){
@@ -76,6 +72,8 @@ SIGNAL bello(command_t* command){
     // user
     uid_t uid = geteuid();
     myprintf("%s\n", command, getpwuid(uid)->pw_name);
+    if (command->type != NO_OP && command->type != REDIR_REVERSE)
+        command->type = REDIR_APPEND;
     
     // host
     char host[MAXIMUM_HOSTNAME + 1];
@@ -93,12 +91,27 @@ SIGNAL bello(command_t* command){
     myprintf("%s\n", command, tty);
     
     // shell ps -o args= -p
-    char cmd[100];
-    sprintf(cmd, "ps -o args= -p %d", getppid());
-    FILE* out = popen(cmd, "r");
-    char buf[100];
-    fgets(buf, 100, out);
-    myprintf("%s", command, buf);
+    char pids[10];
+    sprintf(pids, "%d", getppid());
+    char* args[] = {"ps", "-o", "args=", "-p", pids, NULL};
+    int fd[2];
+    pipe(fd);
+    switch (fork()) {
+    case 0:
+        close(fd[0]);
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[1]);
+        execvp("ps", args);
+        break;
+    
+    default:
+        close(fd[1]);
+        wait(NULL);
+        char buf[MAXIMUM_LINE];
+        read(fd[0], buf, MAXIMUM_LINE);
+        close(fd[0]);
+        myprintf("%s", command, buf);
+    }
 
     // home
     myprintf("%s\n", command, getenv(HOME_ENV));
@@ -110,13 +123,49 @@ SIGNAL bello(command_t* command){
     
     // number of processes
     // TODO ps aux | wc -l
-    sprintf(cmd, "ps aux | wc -l");
-    out = popen(cmd, "r");
-    fgets(buf, 100, out);
-    myprintf("%s", command, buf);
-
+    char* args2[] = {"ps", "-t", tty, NULL};
+    int p[2];
+    pipe(p);
+    pid_t pid = fork();
+    // switch (pid = fork()) {
+    if (pid == 0) {
+        close(p[0]);
+        dup2(p[1], STDOUT_FILENO);
+        close(p[1]);
+        execvp("ps", args2);
+    } else {
+        close(p[1]);
+        // close(p[0]);
+        wait(NULL);
+        char chr;
+        int size = 0;
+        while (read(p[0], &chr, sizeof(char)) > 0) 
+            if (chr == '\n')
+                size++;
+        close(p[0]);
+        myprintf("%d\n", command, size);
+    }
 
     return SUCCESS;
+}
+
+int canReadFromPipe(int fd){
+    //file descriptor struct to check if POLLIN bit will be set
+    //fd is the file descriptor of the pipe
+    struct pollfd fds;
+    fds.fd = fd;
+    int res;
+    //poll with no wait time
+    res = poll(&fds, 1, 0);
+
+    //if res < 0 then an error occurred with poll
+    //POLLERR is set for some other errors
+    //POLLNVAL is set if the pipe is closed
+    if(res < 0||fds.revents&(POLLERR|POLLNVAL))
+    {
+        //an error occurred, check errno
+    }
+    return fds.revents&POLLIN;
 }
 
 SIGNAL exit_(command_t* command){

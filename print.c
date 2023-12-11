@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "main.h"
 #include "print.h"
@@ -13,12 +14,42 @@
 
 void myprintf(char *str, command_t* cmd, ...){
     // TODO print to file if specified in command
-    char buffer[1024];
-    // vsprintf(buffer, str, cmd);
     FILE* file = stdout;
+    if (cmd != NULL && cmd->type != NO_OP) {
+        switch (cmd->type) {
+        case REDIR_OUT:
+            file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "w");
+            break;
+        
+        case REDIR_APPEND:
+            file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "a");
+            break;
+
+        case REDIR_REVERSE:
+            file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "a");
+            char buff[1024];
+            va_list args;
+            va_start(args, cmd);
+            vsprintf(buff, str, args);
+            va_end(args);
+            int len = strlen(buff);
+            for (int i = len - 1; i >= 0; i--) {
+                fputc(buff[i], file);
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
     va_list args;
     va_start(args, cmd);
-    vfprintf(file, str, args);
+    if (cmd != NULL && cmd->type != REDIR_REVERSE) {
+        vfprintf(file, str, args);
+    }
+    if (cmd != NULL && cmd->type != NO_OP) {
+        fclose(file);
+    }
     va_end(args);
 }
 
