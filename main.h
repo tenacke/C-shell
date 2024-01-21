@@ -7,7 +7,7 @@
 #define USER_ENV "USER"
 #ifdef _WIN32
 #define PATH_ENV "PATH"
-#define HOME_ENV "HOMEPATH"
+#define HOME_ENV "HOME"
 #define PATH_DELIM ";"
 #define PATH_SEPARATOR "\\"
 #else

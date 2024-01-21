@@ -12,12 +12,11 @@
 #define REMOVE_LOCAL 0
 #endif
 
-void myprintf(char *str, command_t* cmd, ...){
-    // TODO print to file if specified in command
-    FILE* file = stdout;
+void myprintf(char *str, command_t* cmd, ...){ // print to stdout or file
+    FILE* file = stdout; // default to stdout
     if (cmd != NULL && cmd->type != NO_OP) {
-        switch (cmd->type) {
-        case REDIR_OUT:
+        switch (cmd->type) { // open file for redirection
+        case REDIR_OUT: 
             file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "w");
             break;
         
@@ -25,7 +24,7 @@ void myprintf(char *str, command_t* cmd, ...){
             file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "a");
             break;
 
-        case REDIR_REVERSE:
+        case REDIR_REVERSE: // reverse string and write to file
             file = fopen(cmd->tokens->tokens[cmd->argc + 1].word, "a");
             char buff[1024];
             va_list args;
@@ -44,20 +43,21 @@ void myprintf(char *str, command_t* cmd, ...){
     }
     va_list args;
     va_start(args, cmd);
-    if (cmd != NULL && cmd->type != REDIR_REVERSE) {
-        vfprintf(file, str, args);
+    if (cmd == NULL || cmd->type != REDIR_REVERSE) {
+        vfprintf(file, str, args); // print to stdout or file (not reverse)
     }
-    if (cmd != NULL && cmd->type != NO_OP) {
+    if (cmd != NULL && cmd->type != NO_OP) { // close file for redirection
         fclose(file);
     }
     va_end(args);
 }
 
 void print_prompt(){
+    //user@host cwd ---
     char *user = getenv(USER_ENV);
     char host[MAXIMUM_HOSTNAME + 1];
     gethostname(host, MAXIMUM_HOSTNAME);
-    if (REMOVE_LOCAL) {
+    if (REMOVE_LOCAL) { // remove ".local" from host name (macOS only) macos prints hostname.local by default
         char* local = host;
         while (*local != '\0') {
             if (*local == '.') {
@@ -72,7 +72,7 @@ void print_prompt(){
     free(cwd);
 }
 
-void print_err(ERR_CODE err, command_t* cmd, char *arg){
+void print_err(ERR_CODE err, command_t* cmd, char *arg){ // print error message generic manner
     if (arg == NULL) { arg = ""; }
     switch (err){
         case NO_CMD:
@@ -93,11 +93,11 @@ void print_err(ERR_CODE err, command_t* cmd, char *arg){
     }
 }
 
-void print_err_msg(char *msg, command_t* cmd){
+void print_err_msg(char *msg, command_t* cmd){ // print error message custom manner
     myprintf("%s\n", cmd, msg);
 }
 
-void print_status(SIGNAL signal, pid_t pid){
+void print_status(SIGNAL signal, pid_t pid){ // print status of process (running, success, failure) for background processes
     switch (signal){
         case NOT_FOUND:
             myprintf("Command not found\n", NULL);

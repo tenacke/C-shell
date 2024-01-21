@@ -7,7 +7,7 @@
 struct alias_t* aliases;
 char* alias_file = ".myshell_aliases";
 
-void add_alias(char *alias, char *command){ 
+void add_alias(char *alias, char *command){  // add alias to linked list
     if (aliases == NULL){
         aliases = malloc(sizeof(struct alias_t));
         aliases->alias = strdup(alias);
@@ -30,7 +30,7 @@ void add_alias(char *alias, char *command){
     tmp->next->next = NULL;
 }
 
-char* get_alias(char *alias){
+char* get_alias(char *alias){ // get alias from linked list
     struct alias_t* tmp = aliases;
     while(tmp != NULL){
         if(strcmp(tmp->alias, alias) == 0){
@@ -41,7 +41,7 @@ char* get_alias(char *alias){
     return NULL;
 }
 
-void load_aliases(){
+void load_aliases(){    // load aliases from file
     FILE* file = fopen(alias_file, "r");
     if(file == NULL)
         return;
@@ -55,7 +55,7 @@ void load_aliases(){
     fclose(file);
 }
 
-void save_aliases(){
+void save_aliases(){   // save aliases to file
     FILE* file = fopen(alias_file, "w");
     if(file == NULL)
         return;

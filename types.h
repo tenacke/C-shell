@@ -9,28 +9,28 @@
 #endif
 
 
-typedef enum {
+typedef enum { // error code (for correct error message)
     NO_CMD,
     INV_ARG,
     NO_ARG,
     RUN_ERR
 } ERR_CODE;
 
-typedef enum {
+typedef enum { // signal of command (exit status in abstract way)
     NOT_FOUND,
     RUNNING,
     SUCCESS,
     FAILURE
 } SIGNAL;
 
-typedef enum {
+typedef enum { // token type
     NO_TOKEN,
     WORD,
     OP,
     OP_WORD
 } TOKEN_TYPE;
 
-typedef enum {
+typedef enum { // operator type
     NO_OP,
     PIPE,
     REDIR_IN,
@@ -39,15 +39,15 @@ typedef enum {
     REDIR_REVERSE
 } OP_TYPE;
 
-typedef struct {
+typedef struct { // token
     char* word;
     TOKEN_TYPE type;
 } token_t;
-typedef struct {
+typedef struct { // list of tokens
     token_t* tokens;
     int size;
 } token_list_t;
-typedef struct {
+typedef struct { // command
     char* cmd;
     token_list_t* tokens;
     int argc;
@@ -55,7 +55,7 @@ typedef struct {
     int background;
 } command_t;
 
-typedef struct {
+typedef struct { // generic stack implementation
     char** array;
     int pointer;
     int size;

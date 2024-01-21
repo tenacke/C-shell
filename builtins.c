@@ -19,17 +19,17 @@
 #include "types.h"
 
 extern char* last;
+extern pid_t parent_pid;
 
-builtin_t builtins[] = {
+builtin_t builtins[] = { // list of builtins
     {"cd", &cd},
     {"pwd", &pwd},
-    {"history", &history},
     {"alias", &alias},
     {"bello", &bello},
     {"exit", &exit_}
 };
 
-builtin_func* get_builtin_func(char* name){
+builtin_func* get_builtin_func(char* name){ // get builtin function from name
     for(int i = 0; i < sizeof(builtins)/sizeof(builtin_t); i++){
         if(strcmp(name, builtins[i].name) == 0){
             return builtins[i].func;
@@ -38,40 +38,42 @@ builtin_func* get_builtin_func(char* name){
     return NULL;
 }
 
-SIGNAL pwd(command_t* command){
+SIGNAL pwd(command_t* command){ // print working directory
     char* cwd = getcwd(NULL, 0);
     myprintf("%s\n", command, cwd);
     free(cwd);
     return SUCCESS;
 }
 
-SIGNAL cd(command_t* command){
+SIGNAL cd(command_t* command){ // change directory
     if (chdir(command->tokens->tokens[1].word) == 0)
         return SUCCESS;
     return FAILURE;
 }
 
-SIGNAL alias(command_t* command){
-    if (command->argc != 4) {
-        myprintf("alias: usage: alias [name] = [command]\n", NULL);
-        return FAILURE;
-    }
+SIGNAL alias(command_t* command){ // add alias
     char* alias;
-    char* cmd;
+    char* cmd = calloc(MAXIMUM_LINE, sizeof(char));
     alias = strdup(command->tokens->tokens[1].word);
-    cmd = strdup(command->tokens->tokens[3].word);
+    // parser dont remove quotes for alias
+    for (int i = 3; i < command->argc; i++){
+        strcat(cmd, command->tokens->tokens[i].word);
+        strcat(cmd, " ");
+    } 
+    strcat(cmd, "\0");
+    // so we need to remove them
+    if (cmd[0] == '\"') {
+        cmd[strlen(cmd) - 2] = '\0';
+        cmd++;
+    }
     add_alias(alias, cmd);
-    return SUCCESS;
-}
-
-SIGNAL history(command_t* command){
     return SUCCESS;
 }
 
 SIGNAL bello(command_t* command){
     // user
-    uid_t uid = geteuid();
-    myprintf("%s\n", command, getpwuid(uid)->pw_name);
+    uid_t uid = geteuid(); // get user id
+    myprintf("%s\n", command, getpwuid(uid)->pw_name); // get user name from id (credit: whoami.c from GNU coreutils)
     if (command->type != NO_OP && command->type != REDIR_REVERSE)
         command->type = REDIR_APPEND;
     
@@ -90,13 +92,13 @@ SIGNAL bello(command_t* command){
     char* tty = ttyname(STDIN_FILENO);
     myprintf("%s\n", command, tty);
     
-    // shell ps -o args= -p
+    // shell ps -o args= -p <pid>
     char pids[10];
-    sprintf(pids, "%d", getppid());
-    char* args[] = {"ps", "-o", "args=", "-p", pids, NULL};
+    sprintf(pids, "%d", parent_pid); // convert pid to string
+    char* args[] = {"ps", "-o", "args=", "-p", pids, NULL}; // ps -o args= -p <pid>
     int fd[2];
     pipe(fd);
-    switch (fork()) {
+    switch (fork()) { // fork and execute ps -o args= -p <pid>
     case 0:
         close(fd[0]);
         dup2(fd[1], STDOUT_FILENO);
@@ -104,7 +106,7 @@ SIGNAL bello(command_t* command){
         execvp("ps", args);
         break;
     
-    default:
+    default: // read output from pipe and print to handle redirection with custom print function
         close(fd[1]);
         wait(NULL);
         char buf[MAXIMUM_LINE];
@@ -116,56 +118,45 @@ SIGNAL bello(command_t* command){
     // home
     myprintf("%s\n", command, getenv(HOME_ENV));
 
-    // date
+    // date in roman numerals
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
-    myprintf("%s", command, asctime(tm));
-    
-    // number of processes
-    // TODO ps aux | wc -l
-    char* args2[] = {"ps", "-t", tty, NULL};
-    int p[2];
-    pipe(p);
-    pid_t pid = fork();
-    // switch (pid = fork()) {
-    if (pid == 0) {
-        close(p[0]);
-        dup2(p[1], STDOUT_FILENO);
-        close(p[1]);
-        execvp("ps", args2);
-    } else {
-        close(p[1]);
-        // close(p[0]);
-        wait(NULL);
-        char chr;
-        int size = 0;
-        while (read(p[0], &chr, sizeof(char)) > 0) 
-            if (chr == '\n')
-                size++;
-        close(p[0]);
-        myprintf("%d\n", command, size);
+    int year = tm->tm_year + 1900;
+    int month = tm->tm_mon + 1;
+    int day = tm->tm_mday;
+    int del[] = {1000,900,500,400,100,90,50,40,10,9,5,4,1}; // Key value in Roman counting
+    char * sym[] = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" }; //Symbols for key values
+    char res[64] = "\0";         //result string
+    int i = 0;                   
+    while (year){                 
+        while (year/del[i]){    
+            strcat(res, sym[i]);
+            year -= del[i];       
+        }
+        i++;                     
     }
+    strcat(res, "-"); i = 0;
+    while (month){                
+        while (month/del[i]){    
+            strcat(res, sym[i]);
+            month -= del[i];      
+        }
+        i++;                   
+    }
+    strcat(res, "-"); i = 0;
+    while (day){             
+        while (day/del[i]){    
+            strcat(res, sym[i]);
+            day -= del[i];       
+        }
+        i++;                     
+    }
+    myprintf("%s\n", command, res);
+    
+    // processes
+    myprintf("%d\n", command, num_processes()+1);
 
     return SUCCESS;
-}
-
-int canReadFromPipe(int fd){
-    //file descriptor struct to check if POLLIN bit will be set
-    //fd is the file descriptor of the pipe
-    struct pollfd fds;
-    fds.fd = fd;
-    int res;
-    //poll with no wait time
-    res = poll(&fds, 1, 0);
-
-    //if res < 0 then an error occurred with poll
-    //POLLERR is set for some other errors
-    //POLLNVAL is set if the pipe is closed
-    if(res < 0||fds.revents&(POLLERR|POLLNVAL))
-    {
-        //an error occurred, check errno
-    }
-    return fds.revents&POLLIN;
 }
 
 SIGNAL exit_(command_t* command){

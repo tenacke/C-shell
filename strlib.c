@@ -6,7 +6,7 @@
 #include "strlib.h"
 #include "types.h"
 
-char** strsplit(char* line, const char* delim, size_t* size){
+char** strsplit(char* line, const char* delim, size_t* size){ // split string by delimiter (helper function)
     char **tokens = (char**) malloc(sizeof(char*) * (strlen(line) + 1));
     char *token = strtok(line, delim);
     int i = 0;
@@ -21,7 +21,7 @@ char** strsplit(char* line, const char* delim, size_t* size){
     return tokens;
 }
 
-char* strtrim(char* dest, const char* src, const char* delim){
+char* strtrim(char* dest, const char* src, const char* delim){ // trim string by delimiter (helper function)
     const char *start = src;
     const char *end = src + strlen(src) - 1;
     while (end > start){
@@ -36,7 +36,7 @@ char* strtrim(char* dest, const char* src, const char* delim){
     return dest;
 }
 
-char* pathjoin(char** dest, const char* s1, const char* s2) {
+char* pathjoin(char** dest, const char* s1, const char* s2) { // join two paths (helper function)
     char* result = malloc(strlen(s1) + strlen(s2) + 2);
 
     if (result) {
